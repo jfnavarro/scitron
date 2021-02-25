@@ -69,34 +69,34 @@ def parse_strelka_germline_variants(filename, FILTER_DP, FILTER_DP_PDX, FILTER_V
     reader = vcfpy.Reader.from_path(filename)
     FDP = FILTER_DP_PDX if 'PDX' in str(filename) else FILTER_DP
     for record in reader:
-        if 'SNV' in record.ALT[0].type:
-            called = {x.sample: x.data for x in record.calls}
-            tumor_DP = int(called[tumor_id]['DP'])
-            tumor_AD = int(called[tumor_id]['AD'][1])
-            tumor_VAF = np.around((tumor_AD / float(tumor_DP)) * 100, 3) if tumor_DP > 0.0 else 0.0
-            if 'PASS' in record.FILTER and tumor_VAF >= FILTER_VAF and tumor_DP >= FDP:
-                effects = set()
-                for effect in record.INFO['ANN']:
-                    gene = effect.split('|')[3]
-                    effect_name = effect.split('|')[1]
-                    effect_type = effect.split('|')[2]
-                    effect_biotype = effect.split('|')[7]
-                    effect_aachange = effect.split('|')[10]
-                    effect_feature = effect.split('|')[5]
-                    if NO_EFFECT_FILTER or effect_type in ['HIGH', 'MODERATE']:
-                        effects.add((effect_name, gene, effect_aachange, effect_feature))
-                if len(effects) > 0:
-                    variant = Variant()
-                    variant.chrom = record.CHROM
-                    variant.start = record.POS
-                    variant.ref = record.REF
-                    variant.alt = record.ALT[0].serialize()
-                    variant.caller = 'StrelkaTumorOnly'
-                    variant.effects = effects
-                    variant.DP = tumor_DP
-                    variant.AD = tumor_AD
-                    variant.VAF = tumor_VAF
-                    variants.append(variant)
+        called = {x.sample: x.data for x in record.calls}
+        DP_FIELD = 'DP' if 'SNV' in record.ALT[0].type else 'DPI'
+        tumor_DP = int(called[tumor_id][DP_FIELD])
+        tumor_AD = int(called[tumor_id]['AD'][1])
+        tumor_VAF = np.around((tumor_AD / float(tumor_DP)) * 100, 3) if tumor_DP > 0.0 else 0.0
+        if 'PASS' in record.FILTER and tumor_VAF >= FILTER_VAF and tumor_DP >= FDP:
+            effects = set()
+            for effect in record.INFO['ANN']:
+                gene = effect.split('|')[3]
+                effect_name = effect.split('|')[1]
+                effect_type = effect.split('|')[2]
+                effect_biotype = effect.split('|')[7]
+                effect_aachange = effect.split('|')[10]
+                effect_feature = effect.split('|')[5]
+                if NO_EFFECT_FILTER or effect_type in ['HIGH', 'MODERATE']:
+                    effects.add((effect_name, gene, effect_aachange, effect_feature))
+            if len(effects) > 0:
+                variant = Variant()
+                variant.chrom = record.CHROM
+                variant.start = record.POS
+                variant.ref = record.REF
+                variant.alt = record.ALT[0].serialize()
+                variant.caller = 'StrelkaGermline'
+                variant.effects = effects
+                variant.DP = tumor_DP
+                variant.AD = tumor_AD
+                variant.VAF = tumor_VAF
+                variants.append(variant)
     return variants
 
 
@@ -224,3 +224,37 @@ def parse_mutect_variants(filename, FILTER_DP, FILTER_DP_PDX, FILTER_VAF, NO_EFF
     return variants
 
 
+def parse_mutect_tumor_onnly_variants(filename, FILTER_DP, FILTER_DP_PDX, FILTER_VAF, NO_EFFECT_FILTER=False):
+    variants = list()
+    tumor_id = str(os.path.basename(filename)).split('Mutect2_filtered_')[1].replace('_snpEff.ann.vcf.gz', '')
+    FDP = FILTER_DP_PDX if 'PDX' in str(filename) else FILTER_DP
+    reader = vcfpy.Reader.from_path(filename)
+    for record in reader:
+        called = {x.sample: x.data for x in record.calls}
+        tumor_DP = int(called[tumor_id]['DP'])
+        tumor_AD = int(called[tumor_id]['AD'][1])
+        tumor_VAF = np.around(float(called[tumor_id]['AF'][0]) * 100, 3) if tumor_DP > 0.0 else 0.0
+        if 'PASS' in record.FILTER and tumor_VAF >= FILTER_VAF and tumor_DP >= FDP:
+            effects = set()
+            for effect in record.INFO['ANN']:
+                gene = effect.split('|')[3]
+                effect_name = effect.split('|')[1]
+                effect_type = effect.split('|')[2]
+                effect_biotype = effect.split('|')[7]
+                effect_aachange = effect.split('|')[10]
+                effect_feature = effect.split('|')[5]
+                if NO_EFFECT_FILTER or effect_type in ['HIGH', 'MODERATE']:
+                    effects.add((effect_name, gene, effect_aachange, effect_feature))
+            if len(effects) > 0:
+                variant = Variant()
+                variant.chrom = record.CHROM
+                variant.start = record.POS
+                variant.ref = record.REF
+                variant.alt = record.ALT[0].serialize()
+                variant.caller = 'MutectTumorOnly'
+                variant.effects = effects
+                variant.DP = tumor_DP
+                variant.AD = tumor_AD
+                variant.VAF = tumor_VAF
+                variants.append(variant)
+    return variants

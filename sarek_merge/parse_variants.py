@@ -34,9 +34,21 @@ def main(FILTER_DP,
         sample_id = row['SAMPLE_ID']
         sample_patient = row['PATIENT_ID']
         tumor_only = all(metasamples[metasamples['PATIENT_ID'] == sample_patient]['TUMOR'] == 1)
-        germline = all(metasamples[metasamples['PATIENT_ID'] == sample_patient]['TUMOR'] == 0)
+        germline = row['TUMOR'] == 0
         # Retrieve variants
-        if tumor_only or germline:
+        if tumor_only:
+            for elem in Path(PATH).rglob('*{}_snpEff.ann.vcf.gz'.format(sample_id)):
+                variants_list = list()
+                if 'Mutect2_filtered' in str(elem):
+                    print('Parsing variant in {}'.format(str(elem)))
+                    variants_list = parse_mutect_tumor_onnly_variants(elem, FILTER_DP, FILTER_DP_PDX,
+                                                                      FILTER_VAF, DISABLE_EFFECT_FILTER)
+                if len(variants_list) > 0:
+                    for v in variants_list:
+                        v.sample = sample_id
+                        v.patient = sample_patient
+                        variants_dict[v.key].append(v)
+        elif germline:
             # TODO make this a single reg exp
             for elem in chain(Path(PATH).rglob('*{}_snpEff.ann.vcf.gz'.format(sample_id)),
                               Path(PATH).rglob('*{}_variants_snpEff.ann.vcf.gz'.format(sample_id))):
@@ -58,28 +70,27 @@ def main(FILTER_DP,
             gdna = metasamples[(metasamples['PATIENT_ID'] == sample_patient)
                                & (metasamples['TUMOR'] == 0)]['SAMPLE_ID'].to_numpy()[0]
             #gdna = gdna[:gdna.rfind('_')]
-            if row['TUMOR'] != 0:
-                # TODO make this a single reg exp
-                for elem in chain(Path(PATH).rglob('*{}_vs_{}_snpEff.ann.vcf.gz'.format(sample_id, gdna)),
-                                  Path(PATH).rglob('*{}_vs_{}_variants_snpEff.ann.vcf.gz'.format(sample_id, gdna))):
-                    variants_list = list()
-                    if 'StrelkaBP' in str(elem) and 'somatic_snvs' in str(elem):
-                        print('Parsing variant in {}'.format(str(elem)))
-                        variants_list = parse_strelka_variants(elem, FILTER_DP, FILTER_DP_PDX,
-                                                               FILTER_VAF, DISABLE_EFFECT_FILTER)
-                    if 'StrelkaBP' in str(elem) and 'somatic_indels' in str(elem):
-                        print('Parsing variant in {}'.format(str(elem)))
-                        variants_list = parse_strelka_indel_variants(elem, FILTER_DP, FILTER_DP_PDX,
-                                                                     FILTER_VAF, DISABLE_EFFECT_FILTER)
-                    if 'Mutect2_filtered' in str(elem):
-                        print('Parsing variant in {}'.format(str(elem)))
-                        variants_list = parse_mutect_variants(elem, FILTER_DP, FILTER_DP_PDX,
-                                                              FILTER_VAF, DISABLE_EFFECT_FILTER)
-                    if len(variants_list) > 0:
-                        for v in variants_list:
-                            v.sample = sample_id
-                            v.patient = sample_patient
-                            variants_dict[v.key].append(v)
+            # TODO make this a single reg exp
+            for elem in chain(Path(PATH).rglob('*{}_vs_{}_snpEff.ann.vcf.gz'.format(sample_id, gdna)),
+                              Path(PATH).rglob('*{}_vs_{}_variants_snpEff.ann.vcf.gz'.format(sample_id, gdna))):
+                variants_list = list()
+                if 'StrelkaBP' in str(elem) and 'somatic_snvs' in str(elem):
+                    print('Parsing variant in {}'.format(str(elem)))
+                    variants_list = parse_strelka_variants(elem, FILTER_DP, FILTER_DP_PDX,
+                                                           FILTER_VAF, DISABLE_EFFECT_FILTER)
+                if 'StrelkaBP' in str(elem) and 'somatic_indels' in str(elem):
+                    print('Parsing variant in {}'.format(str(elem)))
+                    variants_list = parse_strelka_indel_variants(elem, FILTER_DP, FILTER_DP_PDX,
+                                                                 FILTER_VAF, DISABLE_EFFECT_FILTER)
+                if 'Mutect2_filtered' in str(elem):
+                    print('Parsing variant in {}'.format(str(elem)))
+                    variants_list = parse_mutect_variants(elem, FILTER_DP, FILTER_DP_PDX,
+                                                          FILTER_VAF, DISABLE_EFFECT_FILTER)
+                if len(variants_list) > 0:
+                    for v in variants_list:
+                        v.sample = sample_id
+                        v.patient = sample_patient
+                        variants_dict[v.key].append(v)
 
     # SECOND parse the dictionary to create a table with the variants and useful information
     ALL_SAMPLES = list(metasamples['SAMPLE_ID'])
