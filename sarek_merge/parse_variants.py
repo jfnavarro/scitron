@@ -39,7 +39,7 @@ def main(FILTER_DP,
         if tumor_only:
             for elem in Path(PATH).rglob('*{}_snpEff.ann.vcf.gz'.format(sample_id)):
                 variants_list = list()
-                if 'Mutect2_filtered' in str(elem):
+                if 'Mutect2_filtered2' in str(elem):
                     print('Parsing variant in {}'.format(str(elem)))
                     variants_list = parse_mutect_tumor_onnly_variants(elem, FILTER_DP, FILTER_DP_PDX,
                                                                       FILTER_VAF, DISABLE_EFFECT_FILTER)

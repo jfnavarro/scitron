@@ -226,7 +226,7 @@ def parse_mutect_variants(filename, FILTER_DP, FILTER_DP_PDX, FILTER_VAF, NO_EFF
 
 def parse_mutect_tumor_onnly_variants(filename, FILTER_DP, FILTER_DP_PDX, FILTER_VAF, NO_EFFECT_FILTER=False):
     variants = list()
-    tumor_id = str(os.path.basename(filename)).split('Mutect2_filtered_')[1].replace('_snpEff.ann.vcf.gz', '')
+    tumor_id = str(os.path.basename(filename)).split('Mutect2_filtered2_')[1].replace('_snpEff.ann.vcf.gz', '')
     FDP = FILTER_DP_PDX if 'PDX' in str(filename) else FILTER_DP
     reader = vcfpy.Reader.from_path(filename)
     for record in reader:
