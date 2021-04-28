@@ -1,0 +1,4 @@
+export NCM_HOME=/Users/jfnavarro/Projects/NGSCheckMate
+
+# input_vcf must contain the VCFs from Mutect2 or Strelka
+python ~/Projects/NGSCheckMate/ncm.py -V -d identity/input_vcf -bed ~/Projects/NGSCheckMate/SNP/SNP_GRCh38_hg38_wChr.bed -O identity/output_vcf

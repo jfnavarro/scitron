@@ -1,0 +1,3 @@
+export ANNOVAR_PATH=/Users/jfnavarro/annovar
+
+python scitron_repo/sarek_merge/parse_variants.py --filter-dp 0 --filter-dp-pdx 0 --filter-vaf 0 --samples sarek/samples.tsv --path Results/Annotation 
